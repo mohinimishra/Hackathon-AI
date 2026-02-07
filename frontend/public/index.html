@@ -385,9 +385,9 @@
             addMessage(message, 'user');
 
             // Show loading
-            showLoading();
+            const loadingId = showLoading();
 
-            // Send to backend
+            // Send to backend with streaming
             fetch(API_URL, {
                 method: 'POST',
                 headers: {
@@ -399,19 +399,73 @@
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    removeLoading();
 
-                    if (data.success) {
-                        addMessage(data.message, 'assistant');
-                    } else {
-                        addMessage(`⚠️ ${data.error}\n\n${data.fallback}`, 'assistant', true);
+                    // Remove loading indicator
+                    removeLoading(loadingId);
+
+                    // Create message container for streaming text
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'message assistant';
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'message-content';
+                    contentDiv.innerHTML = '';
+                    messageDiv.appendChild(contentDiv);
+                    chatContainer.appendChild(messageDiv);
+
+                    // Read stream
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let streamedText = '';
+
+                    function readStream() {
+                        reader.read().then(({ done, value }) => {
+                            if (done) {
+                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                                return;
+                            }
+
+                            const chunk = decoder.decode(value, { stream: true });
+                            const lines = chunk.split('\n');
+
+                            for (const line of lines) {
+                                if (line.startsWith('data: ')) {
+                                    try {
+                                        const data = JSON.parse(line.slice(6));
+                                        if (data.token && !data.done) {
+                                            streamedText += data.token;
+                                            contentDiv.innerHTML = formatMessage(streamedText);
+                                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                                        }
+                                        if (data.done) {
+                                            if (data.fullResponse) {
+                                                contentDiv.innerHTML = formatMessage(data.fullResponse);
+                                            }
+                                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                                            return;
+                                        }
+                                        if (data.error) {
+                                            contentDiv.className = 'message-content error-message';
+                                            contentDiv.innerHTML = `❌ Error: ${data.error}`;
+                                            return;
+                                        }
+                                    } catch (e) {
+                                        console.error('Parse error:', e);
+                                    }
+                                }
+                            }
+
+                            readStream();
+                        }).catch(error => {
+                            console.error('Stream read error:', error);
+                            contentDiv.className = 'message-content error-message';
+                            contentDiv.innerHTML = `❌ Connection error: ${error.message}`;
+                        });
                     }
+
+                    readStream();
                 })
                 .catch(error => {
-                    removeLoading();
+                    removeLoading(loadingId);
                     console.error('Error:', error);
                     addMessage(
                         `❌ Unable to connect to the service. Make sure:\n• Backend server is running on port 4000\n• Ollama is running on http://localhost:11434\n\nError: ${error.message}`,
@@ -451,9 +505,10 @@
         }
 
         function showLoading() {
+            const loadingId = 'loading-' + Date.now();
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message assistant';
-            messageDiv.id = 'loadingMessage';
+            messageDiv.id = loadingId;
 
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
@@ -469,10 +524,11 @@
             messageDiv.appendChild(contentDiv);
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
+            return loadingId;
         }
 
-        function removeLoading() {
-            const loadingMsg = document.getElementById('loadingMessage');
+        function removeLoading(loadingId) {
+            const loadingMsg = document.getElementById(loadingId);
             if (loadingMsg) {
                 loadingMsg.remove();
             }

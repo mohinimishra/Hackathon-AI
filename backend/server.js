@@ -104,7 +104,7 @@ function searchDatabase(query) {
         : 'No specific information found in our database. General information will be provided.';
 }
 
-// Chat endpoint with Ollama
+// Chat endpoint with Ollama (Streaming)
 app.post('/api/chat', async (req, res) => {
     try {
         const { message } = req.body;
@@ -116,33 +116,65 @@ app.post('/api/chat', async (req, res) => {
         // Search insurance database for relevant context
         const dbContext = searchDatabase(message);
 
-        // Build context for Ollama
-        const systemPrompt = `You are a helpful insurance policy assistant for an insurance company. 
-You help customers understand their insurance policies, file claims, and answer questions about coverage.
-You have access to the following information:\n\n${dbContext}\n\n
-Always be helpful, clear, and professional. If you don't have specific information, guide the customer to contact support.`;
+        // Optimized shorter prompt for faster processing
+        const systemPrompt = `You are an insurance assistant. Use this info:\n${dbContext}\n\nAnswer concisely and professionally.`;
+        const prompt = `${systemPrompt}\n\nQ: ${message}\nA:`;
 
-        const prompt = `${systemPrompt}\n\nCustomer Question: ${message}\n\nProvide a helpful and concise response.`;
+        // Set headers for streaming
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
 
-        // Call Ollama API
+        // Call Ollama API with streaming
         const response = await axios.post(
             OLLAMA_API,
             {
                 model: 'tinyllama',
                 prompt: prompt,
-                stream: false,
-                temperature: 0.7,
-                top_p: 0.9
+                stream: true,           // Enable streaming
+                temperature: 0.3,
+                top_p: 0.8,
+                top_k: 40,
+                num_predict: 100,       // Reduced to 100 tokens (~2-3 sentences)
+                num_ctx: 512
             },
+            {
+                timeout: 15000,
+                responseType: 'stream'  // Important for streaming
+            }
         );
 
-        const assistantResponse = response.data.response || 'I apologize, but I could not generate a response.';
+        let fullResponse = '';
 
-        res.json({
-            success: true,
-            message: assistantResponse,
-            context: dbContext
+        // Stream data to client
+        response.data.on('data', (chunk) => {
+            const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
+
+            for (const line of lines) {
+                try {
+                    const parsed = JSON.parse(line);
+                    if (parsed.response) {
+                        fullResponse += parsed.response;
+                        // Send each token to frontend
+                        res.write(`data: ${JSON.stringify({ token: parsed.response, done: false })}\n\n`);
+                    }
+                    if (parsed.done) {
+                        // Send completion signal
+                        res.write(`data: ${JSON.stringify({ token: '', done: true, fullResponse })}\n\n`);
+                        res.end();
+                    }
+                } catch (e) {
+                    // Skip invalid JSON
+                }
+            }
         });
+
+        response.data.on('error', (error) => {
+            console.error('Stream error:', error);
+            res.write(`data: ${JSON.stringify({ error: error.message, done: true })}\n\n`);
+            res.end();
+        });
+
     } catch (error) {
         console.error('Error calling Ollama:', error.message);
 
@@ -181,8 +213,31 @@ app.get('/api/policies', (req, res) => {
 // Serve static files from frontend
 app.use(express.static('../frontend/public'));
 
+// Pre-warm the model on startup
+async function prewarmModel() {
+    try {
+        console.log('Pre-warming Ollama model...');
+        await axios.post(
+            OLLAMA_API,
+            {
+                model: 'tinyllama',
+                prompt: 'Hi',
+                stream: false,
+                num_predict: 5
+            },
+            { timeout: 30000 }
+        );
+        console.log('✓ Model pre-warmed and ready!');
+    } catch (error) {
+        console.log('⚠️  Could not pre-warm model. Make sure Ollama is running.');
+    }
+}
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
     console.log(`Insurance Chatbot API running on http://localhost:${PORT}`);
     console.log(`Make sure Ollama is running on http://localhost:11434`);
+
+    // Pre-warm model after server starts
+    prewarmModel();
 });
