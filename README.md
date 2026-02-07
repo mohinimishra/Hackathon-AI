@@ -14,50 +14,87 @@ An AI-powered interactive chatbot that helps customers understand insurance poli
 ## Prerequisites
 
 - **Node.js** (v14 or higher)
-- **Ollama** with llama2 model installed and running
+- **Ollama** (with tinyllama or llama2 model installed and running)
 - **macOS/Linux/Windows** terminal
 
 ## Setup Instructions
 
-### 1. Install Ollama and llama2
+### 1. Install Ollama Locally
+
+#### macOS
+```bash
+# Download and install Ollama from https://ollama.ai
+# Or use Homebrew:
+brew install ollama
+
+# Start Ollama service
+ollama serve
+```
+
+#### Linux
+```bash
+# Download installer from https://ollama.ai
+# Or use curl:
+curl https://ollama.ai/install.sh | sh
+
+# Start Ollama service
+ollama serve
+```
+
+#### Windows
+```bash
+# Download installer from https://ollama.ai and run it
+# Then start Ollama from the Start Menu or command line:
+ollama serve
+```
+
+### 2. Pull a Language Model
+
+After starting Ollama, open a new terminal and pull one of these models:
 
 ```bash
-# Install Ollama from https://ollama.ai
-# Then pull the llama2 model
-ollama pull llama2
+# For TinyLlama (recommended - lightweight & fast, ~4GB):
+ollama pull tinyllama
 
-# Run Ollama (keep this terminal open)
-ollama serve
+# OR for Llama2 (more capable but slower, ~7GB):
+ollama pull llama2
+```
+
+Verify installation:
+```bash
+ollama list  # Shows installed models
+ollama show tinyllama  # Shows model details
 ```
 
 Ollama will run on `http://localhost:11434`
 
-### 2. Install Backend Dependencies
+### 3. Install Backend Dependencies
 
 ```bash
-cd /Users/mm/github/hackathon/backend
+cd backend
 npm install
 ```
 
-### 3. Create Environment File
+### 4. Create Environment File
 
 ```bash
 cp .env.example .env
 # Edit .env if needed (defaults should work fine)
+# Update the model name if using a different model
 ```
 
-### 4. Start the Backend Server
+### 5. Start the Backend Server
 
 ```bash
 npm start
-# Server will run on http://localhost:3000
+# Server will run on http://localhost:4000
 ```
 
-### 5. Open in Browser
+### 6. Open in Browser
 
 Open your browser and navigate to:
 ```
-http://localhost:3000/
+http://localhost:4000/
 ```
 
 ## Project Structure
@@ -139,17 +176,25 @@ The chatbot can answer questions like:
 
 ## Troubleshooting
 
-### Error: "Ollama is not running"
+### Error: "Ollama is not running" or "Timeout"
 - Make sure you've run `ollama serve` in another terminal
 - Check that Ollama is accessible at `http://localhost:11434`
+- Test with: `curl http://localhost:11434/api/tags`
+- First request can take a few minutes as the model loads into memory
 
-### Error: "Cannot connect to backend"
+### Error: "Cannot connect to the service"
 - Ensure backend server is running with `npm start`
-- Check that no other service is using port 3000
+- Check that no other service is using port 4000
+- Frontend should connect to `http://localhost:4000/api/chat`
+
+### Model loading slowly or timing out
+- TinyLlama is faster and lighter - try: `ollama pull tinyllama`
+- You can adjust the timeout in `backend/server.js` if needed
+- First request after restarting Ollama can take several minutes
 
 ### Model not found
-- Pull the llama2 model: `ollama pull llama2`
 - List available models: `ollama list`
+- Pull a model: `ollama pull tinyllama` or `ollama pull llama2`
 
 ## Customization
 
@@ -165,16 +210,24 @@ yourProductName: {
 }
 ```
 
-### Changing LLM Model
-In `backend/server.js`, change the model in the Ollama request:
+### Changing the LLM Model
+In `backend/server.js`, find the Ollama API call and update the model name:
 
 ```javascript
-{
-  model: 'mistral', // or any other available Ollama model
-  prompt: prompt,
-  stream: false
-}
+const response = await axios.post(
+    OLLAMA_API,
+    {
+        model: 'tinyllama',  // Change this to any available Ollama model
+        prompt: prompt,
+        stream: false,
+        temperature: 0.7,
+        top_p: 0.9
+    },
+    { timeout: 60000 }
+);
 ```
+
+Available models: `tinyllama`, `llama2`, `mistral`, etc. (run `ollama list` to see installed models)
 
 ### Styling the UI
 Edit the CSS in `frontend/public/index.html` under the `<style>` tag.
@@ -205,6 +258,7 @@ MIT
 
 For issues or questions, please check:
 1. Ollama is running on http://localhost:11434
-2. Backend is running on http://localhost:3000
+2. Backend is running on http://localhost:4000
 3. Check browser console for error messages
 4. Check terminal output for server logs
+5. Test Ollama directly: `curl -X POST http://localhost:11434/api/generate -d '{"model":"tinyllama","prompt":"Hello!","stream":false}'`
