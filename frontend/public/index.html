@@ -4,550 +4,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Insurance Policy Assistant</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <meta name="description" content="InsureAssist - Your intelligent insurance companion powered by AI">
+    <meta name="keywords" content="insurance, chatbot, AI assistant, insurance claims, coverage">
+    <title>InsureAssist - AI Insurance Assistant</title>
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+    <!-- External CSS -->
+    <link rel="stylesheet" href="styles.css">
 
-        .container {
-            width: 100%;
-            max-width: 800px;
-            height: 90vh;
-            max-height: 800px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            border-bottom: 4px solid #5568d3;
-        }
-
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-
-        .header p {
-            font-size: 13px;
-            opacity: 0.9;
-        }
-
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            background: #f8f9fa;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .message {
-            display: flex;
-            margin-bottom: 10px;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .message.user {
-            justify-content: flex-end;
-        }
-
-        .message.assistant {
-            justify-content: flex-start;
-        }
-
-        .message-content {
-            max-width: 70%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            word-wrap: break-word;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-        .user .message-content {
-            background: #667eea;
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-
-        .assistant .message-content {
-            background: #e9ecef;
-            color: #333;
-            border-bottom-left-radius: 4px;
-            border: 1px solid #dee2e6;
-        }
-
-        .loading {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #667eea;
-            font-size: 14px;
-        }
-
-        .loading-dot {
-            width: 8px;
-            height: 8px;
-            background: #667eea;
-            border-radius: 50%;
-            animation: bounce 1.4s infinite;
-        }
-
-        .loading-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .loading-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes bounce {
-
-            0%,
-            80%,
-            100% {
-                opacity: 0.5;
-                transform: translateY(0);
-            }
-
-            40% {
-                opacity: 1;
-                transform: translateY(-8px);
-            }
-        }
-
-        .input-area {
-            padding: 15px;
-            background: white;
-            border-top: 1px solid #dee2e6;
-            display: flex;
-            gap: 10px;
-        }
-
-        .input-group {
-            flex: 1;
-            display: flex;
-            gap: 10px;
-        }
-
-        #messageInput {
-            flex: 1;
-            padding: 12px 16px;
-            border: 2px solid #e9ecef;
-            border-radius: 24px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        #messageInput:focus {
-            border-color: #667eea;
-        }
-
-        button {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 24px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-            min-width: 100px;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .suggested-questions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .suggestion-btn {
-            padding: 10px 14px;
-            background: #f0f0f0;
-            color: #667eea;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.3s;
-            width: 100%;
-            text-align: left;
-        }
-
-        .suggestion-btn:hover {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-            transform: translateY(-2px);
-        }
-
-        .empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #999;
-            text-align: center;
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-
-        .error-message {
-            background: #ffe6e6;
-            color: #d32f2f;
-            padding: 12px 16px;
-            border-radius: 8px;
-            border-left: 4px solid #d32f2f;
-            font-size: 14px;
-        }
-
-        .info-badge {
-            display: inline-block;
-            background: #e3f2fd;
-            color: #1976d2;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-top: 8px;
-            font-weight: 500;
-        }
-
-        /* Scrollbar styling */
-        .chat-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .chat-container::-webkit-scrollbar-track {
-            background: #f0f0f0;
-        }
-
-        .chat-container::-webkit-scrollbar-thumb {
-            background: #ccc;
-            border-radius: 4px;
-        }
-
-        .chat-container::-webkit-scrollbar-thumb:hover {
-            background: #999;
-        }
-
-        @media (max-width: 600px) {
-            .message-content {
-                max-width: 85%;
-            }
-
-            .header h1 {
-                font-size: 20px;
-            }
-
-            .suggested-questions {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
     <div class="container">
+        <!-- Header -->
         <div class="header">
-            <h1>🛡️ Insurance Policy Assistant</h1>
-            <p>Ask me about policies, claims, and coverage options</p>
-        </div>
-
-        <div class="chat-container" id="chatContainer">
-            <div class="empty-state">
-                <div class="empty-state-icon">💬</div>
-                <h2>Welcome!</h2>
-                <p>Ask me anything about your insurance policies, claims, and coverage.</p>
+            <div class="header-left">
+                <div class="header-icon">🛡️</div>
+                <div class="header-text">
+                    <h1>InsureAssist</h1>
+                    <p>Your AI-Powered Insurance Companion</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="header-btn" id="clearChatBtn" title="Start a new conversation">
+                    <span>🔄</span>
+                    <span>New Chat</span>
+                </button>
             </div>
         </div>
 
+        <!-- Chat Container -->
+        <div class="chat-container" id="chatContainer">
+            <!-- Messages will be dynamically added here -->
+        </div>
+
+        <!-- Input Area -->
         <div class="input-area">
             <div class="input-group">
-                <input type="text" id="messageInput"
-                    placeholder="Ask about auto insurance, home claims, coverage types..." autocomplete="off" />
-                <button id="sendBtn" onclick="sendMessage()">Send</button>
+                <input
+                    type="text"
+                    id="messageInput"
+                    placeholder="Ask about policies, claims, coverage, or anything insurance-related..."
+                    autocomplete="off"
+                    aria-label="Type your insurance question"
+                />
+                <button class="btn-primary" id="sendBtn" aria-label="Send message">
+                    Send
+                </button>
             </div>
         </div>
     </div>
 
-    <script>
-        const chatContainer = document.getElementById('chatContainer');
-        const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-
-        const API_URL = 'http://localhost:4000/api/chat';
-
-        // Suggested questions
-        const suggestedQuestions = [
-            'What kind of claim can I file if I hit a deer?',
-            'How much is my home insurance coverage?',
-            'What does collision coverage include?',
-            'What is the deductible for auto insurance?',
-            'How do I file a claim for car damage?',
-            'What policies do you offer?',
-            'What is comprehensive coverage?',
-            'Tell me about your health insurance plans'
-        ];
-
-        // Initialize with suggestions
-        function initializeChatWithSuggestions() {
-            chatContainer.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">💬</div>
-                    <h2>Welcome!</h2>
-                    <p>Ask me anything about your insurance policies, claims, and coverage.</p>
-                    <div class="suggested-questions" style="margin-top: 20px; width: 100%;">
-                        ${suggestedQuestions.map(q => `
-                            <button class="suggestion-btn" onclick="setMessageAndSend('${q}')">
-                                ${q}
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        function setMessageAndSend(message) {
-            messageInput.value = message;
-            sendMessage();
-        }
-
-        function sendMessage() {
-            const message = messageInput.value.trim();
-
-            if (!message) return;
-
-            // Clear input
-            messageInput.value = '';
-
-            // Clear empty state if first message
-            if (chatContainer.querySelector('.empty-state')) {
-                chatContainer.innerHTML = '';
-            }
-
-            // Add user message
-            addMessage(message, 'user');
-
-            // Show loading
-            const loadingId = showLoading();
-
-            // Send to backend with streaming
-            fetch(API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message })
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    // Remove loading indicator
-                    removeLoading(loadingId);
-
-                    // Create message container for streaming text
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = 'message assistant';
-                    const contentDiv = document.createElement('div');
-                    contentDiv.className = 'message-content';
-                    contentDiv.innerHTML = '';
-                    messageDiv.appendChild(contentDiv);
-                    chatContainer.appendChild(messageDiv);
-
-                    // Read stream
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
-                    let streamedText = '';
-
-                    function readStream() {
-                        reader.read().then(({ done, value }) => {
-                            if (done) {
-                                chatContainer.scrollTop = chatContainer.scrollHeight;
-                                return;
-                            }
-
-                            const chunk = decoder.decode(value, { stream: true });
-                            const lines = chunk.split('\n');
-
-                            for (const line of lines) {
-                                if (line.startsWith('data: ')) {
-                                    try {
-                                        const data = JSON.parse(line.slice(6));
-                                        if (data.token && !data.done) {
-                                            streamedText += data.token;
-                                            contentDiv.innerHTML = formatMessage(streamedText);
-                                            chatContainer.scrollTop = chatContainer.scrollHeight;
-                                        }
-                                        if (data.done) {
-                                            if (data.fullResponse) {
-                                                contentDiv.innerHTML = formatMessage(data.fullResponse);
-                                            }
-                                            chatContainer.scrollTop = chatContainer.scrollHeight;
-                                            return;
-                                        }
-                                        if (data.error) {
-                                            contentDiv.className = 'message-content error-message';
-                                            contentDiv.innerHTML = `❌ Error: ${data.error}`;
-                                            return;
-                                        }
-                                    } catch (e) {
-                                        console.error('Parse error:', e);
-                                    }
-                                }
-                            }
-
-                            readStream();
-                        }).catch(error => {
-                            console.error('Stream read error:', error);
-                            contentDiv.className = 'message-content error-message';
-                            contentDiv.innerHTML = `❌ Connection error: ${error.message}`;
-                        });
-                    }
-
-                    readStream();
-                })
-                .catch(error => {
-                    removeLoading(loadingId);
-                    console.error('Error:', error);
-                    addMessage(
-                        `❌ Unable to connect to the service. Make sure:\n• Backend server is running on port 4000\n• Ollama is running on http://localhost:11434\n\nError: ${error.message}`,
-                        'assistant',
-                        true
-                    );
-                });
-        }
-
-        function addMessage(text, sender, isError = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
-
-            const contentDiv = document.createElement('div');
-            contentDiv.className = `message-content${isError ? ' error-message' : ''}`;
-            contentDiv.innerHTML = formatMessage(text);
-
-            messageDiv.appendChild(contentDiv);
-            chatContainer.appendChild(messageDiv);
-
-            // Scroll to bottom
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function formatMessage(text) {
-            // Replace newlines with <br>
-            let formatted = text.replace(/\n/g, '<br>');
-
-            // Bold key terms
-            const terms = ['Coverage', 'Deductible', 'Premium', 'Claim', 'Policy', 'Comprehensive', 'Collision', 'Liability'];
-            terms.forEach(term => {
-                const regex = new RegExp(`\\b${term}\\b`, 'gi');
-                formatted = formatted.replace(regex, `<strong>${term}</strong>`);
-            });
-
-            return formatted;
-        }
-
-        function showLoading() {
-            const loadingId = 'loading-' + Date.now();
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message assistant';
-            messageDiv.id = loadingId;
-
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            contentDiv.innerHTML = `
-                <div class="loading">
-                    <span>Analyzing your question</span>
-                    <div class="loading-dot"></div>
-                    <div class="loading-dot"></div>
-                    <div class="loading-dot"></div>
-                </div>
-            `;
-
-            messageDiv.appendChild(contentDiv);
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            return loadingId;
-        }
-
-        function removeLoading(loadingId) {
-            const loadingMsg = document.getElementById(loadingId);
-            if (loadingMsg) {
-                loadingMsg.remove();
-            }
-        }
-
-        // Event listeners
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        sendBtn.addEventListener('click', sendMessage);
-
-        // Initialize on load
-        window.addEventListener('load', () => {
-            initializeChatWithSuggestions();
-        });
-    </script>
+    <!-- External JavaScript -->
+    <script src="app.js"></script>
 </body>
 
 </html>
