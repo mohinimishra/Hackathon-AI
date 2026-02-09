@@ -87,6 +87,10 @@
 
         .message.assistant {
             justify-content: flex-start;
+            flex-direction: column;
+            /* Stack content and follow-ups vertically */
+            align-items: flex-start;
+            /* Keep alignment to the left */
         }
 
         .message-content {
@@ -210,6 +214,7 @@
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 10px;
             margin-bottom: 10px;
+            width: 100%;
         }
 
         .suggestion-btn {
@@ -438,7 +443,12 @@
                                         }
                                         if (data.done) {
                                             if (data.fullResponse) {
+                                                // Replace streamed text with final answer (without any FOLLOW_UP text)
                                                 contentDiv.innerHTML = formatMessage(data.fullResponse);
+                                            }
+                                            // Render follow-up chips if provided
+                                            if (Array.isArray(data.followUps) && data.followUps.length) {
+                                                renderFollowUps(data.followUps, messageDiv);
                                             }
                                             chatContainer.scrollTop = chatContainer.scrollHeight;
                                             return;
@@ -488,6 +498,23 @@
 
             // Scroll to bottom
             chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Render follow-up suggestion chips below an assistant message
+        function renderFollowUps(followUps, messageDiv) {
+            const container = document.createElement('div');
+            container.className = 'suggested-questions';
+            container.style.marginTop = '8px';
+
+            followUps.forEach(q => {
+                const btn = document.createElement('button');
+                btn.className = 'suggestion-btn';
+                btn.textContent = q;
+                btn.onclick = () => setMessageAndSend(q);
+                container.appendChild(btn);
+            });
+
+            messageDiv.appendChild(container);
         }
 
         function formatMessage(text) {
